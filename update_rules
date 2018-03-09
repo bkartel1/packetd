@@ -1,0 +1,109 @@
+#!/bin/dash
+
+PACKETD_QUEUE_NUM=1818
+
+IPTABLES=${IPTABLES:-iptables}
+TABLE_NAME=mangle
+CHAIN_NAME=untangle-packetd
+
+debug()
+{
+    echo "[DEBUG:`date`] $*"
+}
+
+is_queue_open()
+{
+    local t_packetd_pid
+    local t_queue_pid
+
+    t_packetd_pid="invalid"
+
+    if [ ! -f /proc/net/netfilter/nfnetlink_queue ]; then
+        echo "[`date`] The netfilter nfnetlink_queue does not exist - not inserting rules for packetd"
+        return 1
+    fi
+
+    t_queue_pid=`awk -v queue=${PACKETD_QUEUE_NUM} '{ if ( $1 == queue ) print $2 }' /proc/net/netfilter/nfnetlink_queue`
+
+    if [ -z "${t_queue_pid}" ]; then
+        echo "[`date`] The packetd netfilter queue is not open - not inserting rules for packetd"
+        return 1
+    fi
+
+    t_packetd_pid=${t_queue_pid}
+
+    t_packetd_cmd=`grep -c packetd /proc/${t_packetd_pid}/cmdline 2>| /dev/null`
+
+    if [ $((t_packetd_cmd)) -eq 0 ]; then
+        echo "[`date`] Something other than packetd seems to own the queue: `cat /proc/${t_packetd_pid}/cmdline`"
+#	return 1
+    fi
+
+    return 0
+}
+
+flush_packetd_iptables_rules()
+{
+    # create and flush a new chain for our traffic
+    ${IPTABLES} -t ${TABLE_NAME} -N ${CHAIN_NAME} >/dev/null 2>&1
+    ${IPTABLES} -t ${TABLE_NAME} -F ${CHAIN_NAME}
+
+    # remove previous rules to call the chain if they exist
+    ${IPTABLES} -t ${TABLE_NAME} -D PREROUTING -m mark --mark 0x00000000/0x03000000 -j ${CHAIN_NAME} >/dev/null 2>&1
+    ${IPTABLES} -t ${TABLE_NAME} -D OUTPUT -m mark --mark 0x00000000/0x02000000 -j ${CHAIN_NAME} >/dev/null 2>&1
+}
+
+insert_packetd_iptables_rules()
+{
+    # we don't care about traffic to or from loopback addresses
+    ${IPTABLES} -t ${TABLE_NAME} -A ${CHAIN_NAME} -s 127.0.0.0/8 -j RETURN
+    ${IPTABLES} -t ${TABLE_NAME} -A ${CHAIN_NAME} -d 127.0.0.0/8 -j RETURN
+
+    # we also don't want to look at any traffic owned by the local machine
+    ${IPTABLES} -t ${TABLE_NAME} -A ${CHAIN_NAME} -m mark --mark 0x10000/0x10000 -j RETURN
+
+    # special hook to allow bypass of a development machine or network
+    if [ ! -z ${PACKETD_DEV_NETWORK} ]; then
+        ${IPTABLES} -t ${TABLE_NAME} -A ${CHAIN_NAME} -s ${PACKETD_DEV_NETWORK} -j RETURN
+        ${IPTABLES} -t ${TABLE_NAME} -A ${CHAIN_NAME} -d ${PACKETD_DEV_NETWORK} -j RETURN
+    fi
+
+    # all other TCP and UDP traffic will be handed off to our netfilter queue
+    ${IPTABLES} -t ${TABLE_NAME} -A ${CHAIN_NAME} -p tcp -j NFQUEUE --queue-num ${PACKETD_QUEUE_NUM} --queue-bypass
+    ${IPTABLES} -t ${TABLE_NAME} -A ${CHAIN_NAME} -p udp -j NFQUEUE --queue-num ${PACKETD_QUEUE_NUM} --queue-bypass
+
+    # ----- now that we have created our table we need some rules to send us traffic
+    # ----- these next rules will grab only traffic that we need to classify
+
+    # capture all prerouting traffic except stuff with BYPASS or NOTRACK set in the mark
+    ${IPTABLES} -t ${TABLE_NAME} -A PREROUTING -m mark --mark 0x00000000/0x03000000 -j ${CHAIN_NAME}
+
+    # capture all output traffic except stuff with NOTRACK set in the mark
+    ${IPTABLES} -t ${TABLE_NAME} -A OUTPUT -m mark --mark 0x00000000/0x02000000 -j ${CHAIN_NAME}
+
+    return 0
+}
+
+##### Start of script
+
+## make sure we are called as root
+USERVAL=`id -u`
+if test ${USERVAL} -ne 0
+then
+  printf "\n  ERROR: You must be root to run this script\n\n"
+  exit
+fi
+
+## Sounce the configuration file if available
+if [ -f /etc/default/untangle-packetd ]; then
+    . /etc/default/untangle-packetd
+fi
+
+## Flush the existing rules
+flush_packetd_iptables_rules
+
+## If the queue is open generate the new rules
+is_queue_open && {
+    echo "[`date`] The packetd daemon is running. Inserting rules."
+    insert_packetd_iptables_rules
+}

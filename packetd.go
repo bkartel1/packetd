@@ -13,6 +13,7 @@ import "bufio"
 import "unsafe"
 import "github.com/untangle/packetd/support"
 import "github.com/untangle/packetd/example"
+import "github.com/untangle/packetd/classify"
 
 /*---------------------------------------------------------------------------*/
 var childsync sync.WaitGroup
@@ -30,6 +31,7 @@ func main() {
 	// ********** Call all plugin startup functions here
 
 	go example.Plugin_Startup(&childsync)
+	go classify.Plugin_Startup(&childsync)
 
 	// ********** End of plugin startup functions
 
@@ -46,6 +48,8 @@ func main() {
 		}
 		close(ch)
 	}(ch)
+
+	support.LogMessage("RUNNING ON CONSOLE - HIT ENTER TO EXIT\n")
 
 stdinloop:
 	for {
@@ -64,13 +68,14 @@ stdinloop:
 			}
 		case <-time.After(1 * time.Second):
 			counter++
-			support.LogMessage("Waiting for input %d...\n", counter)
+			//			support.LogMessage("Waiting for input %d...\n", counter)
 		}
 	}
 
 	// ********** Call all plugin goodbye functions here
 
 	go example.Plugin_Goodbye(&childsync)
+	go classify.Plugin_Goodbye(&childsync)
 
 	// ********** End of plugin goodbye functions
 
@@ -84,7 +89,7 @@ stdinloop:
 func go_netfilter_callback(data *C.uchar, size C.int) {
 
 	// this version creates a Go copy of the buffer
-	//	buffer := C.GoBytes(unsafe.Pointer(data),size)
+	// buffer := C.GoBytes(unsafe.Pointer(data),size)
 
 	// this version creates a Go pointer to the buffer
 	buffer := (*[0xFFFF]byte)(unsafe.Pointer(data))[:int(size):int(size)]
@@ -93,6 +98,7 @@ func go_netfilter_callback(data *C.uchar, size C.int) {
 	// ********** Call all plugin netfilter handler functions here
 
 	go example.Plugin_netfilter_handler(buffer, length)
+	go classify.Plugin_netfilter_handler(buffer, length)
 
 	// ********** End of plugin netfilter callback functions
 }
@@ -115,6 +121,7 @@ func go_conntrack_callback(info *C.struct_conntrack_info) {
 	// ********** Call all plugin conntrack handler functions here
 
 	go example.Plugin_conntrack_handler(&tracker)
+	go classify.Plugin_conntrack_handler(&tracker)
 
 	// ********** End of plugin netfilter callback functions
 

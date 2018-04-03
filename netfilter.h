@@ -22,7 +22,7 @@ static int                      cfg_net_queue = 1818;
 static int netq_callback(struct nfq_q_handle *qh,struct nfgenmsg *nfmsg,struct nfq_data *nfad,void *data)
 {
 struct nfqnl_msg_packet_hdr     *hdr;
-unsigned char			*rawpkt;
+unsigned char					*rawpkt;
 struct iphdr                    *iphead;
 int                             rawlen;
 

@@ -8,7 +8,7 @@
  */
 
 /*--------------------------------------------------------------------------*/
-extern void go_netfilter_callback(unsigned char* data, int len);
+extern int go_netfilter_callback(int mark,unsigned char* data, int len);
 extern void go_child_startup(void);
 extern void go_child_goodbye(void);
 /*--------------------------------------------------------------------------*/
@@ -25,10 +25,11 @@ struct nfqnl_msg_packet_hdr     *hdr;
 unsigned char					*rawpkt;
 struct iphdr                    *iphead;
 int                             rawlen;
+int								omark,nmark;
 
-// first set the accept verdict on the packet
+// get the packet header and mark
 hdr = nfq_get_msg_packet_hdr(nfad);
-nfq_set_verdict(qh,(hdr ? ntohl(hdr->packet_id) : 0),NF_ACCEPT,0,NULL);
+omark = nfq_get_nfmark(nfad);
 
 // get the packet length and data
 rawlen = nfq_get_payload(nfad,(unsigned char **)&rawpkt);
@@ -36,6 +37,7 @@ rawlen = nfq_get_payload(nfad,(unsigned char **)&rawpkt);
     // ignore packets with invalid length
     if (rawlen < (int)sizeof(struct iphdr))
     {
+	nfq_set_verdict(qh,(hdr ? ntohl(hdr->packet_id) : 0),NF_ACCEPT,0,NULL);
     logmessage(LOG_WARNING,"Invalid length %d received\n",rawlen);
     return(0);
     }
@@ -50,7 +52,10 @@ if (iphead->version != 4) return(0);
 if ((iphead->protocol != IPPROTO_TCP) && (iphead->protocol != IPPROTO_UDP)) return(0);
 
 // call the go handler function
-go_netfilter_callback(rawpkt,rawlen);
+nmark = go_netfilter_callback(omark,rawpkt,rawlen);
+
+// set the verdict and the returned mark
+nfq_set_verdict2(qh,(hdr ? ntohl(hdr->packet_id) : 0),NF_ACCEPT,nmark,0,NULL);
 
 return(0);
 }
@@ -68,7 +73,6 @@ nfqh = nfq_open();
     g_shutdown = 1;
     return(1);
     }
-logmessage(LOG_INFO,"nfq_open returned %p\n",nfqh);
 
 // unbind any existing queue handler
 ret = nfq_unbind_pf(nfqh,AF_INET);
@@ -179,25 +183,10 @@ network.fd = netsock;
 network.events = POLLIN;
 network.revents = 0;
 
-// set up the console poll structure
-console.fd = fileno(stdin);
-console.events = POLLIN;
-console.revents = 0;
-
 go_child_startup();
 
     while (g_shutdown == 0)
     {
-        // check for console input
-        ret = poll(&console,1,0);
-
-        if (ret != 0)
-        {
-        logmessage(LOG_INFO,"Console input detected - Exiting poll loop\n");
-	g_shutdown = 1;
-        break;
-        }
-
     // wait for data on the socket
     ret = poll(&network,1,1000);
 

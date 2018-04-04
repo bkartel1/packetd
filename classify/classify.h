@@ -64,25 +64,23 @@ protochain[0] = 0;
     strncat(protochain,work,sizeof(protochain)-1);
 	}
 
-printf("CLASSIFICATION = %s\n",protochain);
+// TODO - do something with the appname and protochain
+printf("APPNAME:%s PROTOCHAIN:%s\n",appname,protochain);
 
 return(0);
 }
 /*--------------------------------------------------------------------------*/
 void attr_callback(navl_handle_t handle,navl_conn_t conn,int attr_type,int attr_length,const void *attr_value,int attr_flag,void *arg)
 {
-char				namestr[256];
 char				detail[256];
-
-// if the session object passed is null we can't update
-// this should never happen but we check just in case
-if (arg == NULL) return;
 
 // we can't initialize our l_attr_xxx values during startup because the values
 // returned by vineyard are different for each thread so to work around this
 // we set them as invalid during startup and init the first time we are called
 if (l_attr_facebook_app == INVALID_VALUE) l_attr_facebook_app = navl_attr_key_get(handle,l_name_facebook_app);
 if (l_attr_tls_hostname == INVALID_VALUE) l_attr_tls_hostname = navl_attr_key_get(handle,l_name_tls_hostname);
+
+detail[0] = 0;
 
 	// check for the facebook application name
 	if (attr_type == l_attr_facebook_app)
@@ -98,15 +96,8 @@ if (l_attr_tls_hostname == INVALID_VALUE) l_attr_tls_hostname = navl_attr_key_ge
 	detail[attr_length] = 0;
 	}
 
-	// nothing we signed up for so just ignore and return
-	else
-	{
-	return;
-	}
-
-// update the session object with the data received
-// TODO - session->UpdateDetail(detail);
-// TODO - LOGMESSAGE(CAT_UPDATE,LOG_DEBUG,"CLASSIFY DETAIL %s\n",session->GetObjectString(namestr,sizeof(namestr)));
+// TODO - do something with the detail
+printf("DETAIL:%s\n",detail);
 }
 /*--------------------------------------------------------------------------*/
 int vendor_classify(const unsigned char *data,int length)
@@ -125,7 +116,7 @@ res = snprintf(buf, 4096, "%s: %s: ", level, func);
 res += vsnprintf(buf + res, 4096 - res, format, va);
 navl_diag_printf(buf);
 va_end(va);
-return res;
+return(res);
 }
 /*--------------------------------------------------------------------------*/
 void vendor_externals(void)
@@ -194,7 +185,7 @@ int			ret;
 
 sprintf(work,"%d",value);
 ret = navl_config_set(l_navl_handle,key,work);
-//if (ret != 0) logmessage(LOG_ERR,"Error calling navl_config_set(%s)\n",key);
+if (ret != 0) printf("Error calling navl_config_set(%s)\n",key); // TODO - no printf
 return(ret);
 }
 /*--------------------------------------------------------------------------*/
@@ -215,7 +206,7 @@ l_navl_handle = navl_open(NULL);
 	if (l_navl_handle == -1)
 	{
 	ret = navl_error_get(0);
-	//logmessage(LOG_ERR,"Error %d returned from navl_open()\n",ret);
+	printf("Error %d returned from navl_open()\n",ret); // TODO - no printf
 	return(1);
 	}
 
@@ -245,7 +236,7 @@ ret = navl_init(l_navl_handle);
 
 	if (ret != 0)
 	{
-	//logmessage(LOG_ERR,"Error %d returned from navl_init()\n",ret);
+	printf("Error %d returned from navl_init()\n",ret); // TODO - no printf
 	return(13);
 	}
 
@@ -254,7 +245,7 @@ if ((navl_attr_callback_set(l_navl_handle,l_name_tls_hostname,attr_callback) != 
 
 	if (problem != 0)
 	{
-	//logmessage(LOG_ERR,"Error 0x%02X enabling metadata callbacks\n",problem);
+	printf("Error 0x%02X enabling metadata callbacks\n",problem); // TODO - no printf
 	return(14);
 	}
 
@@ -263,7 +254,7 @@ ret = navl_proto_max_index(l_navl_handle);
 
 	if (ret == -1)
 	{
-	//logmessage(LOG_ERR,"Error calling navl_proto_max_index()\n");
+	printf("Error calling navl_proto_max_index()\n"); // TODO - no printf
 	return(15);
 	}
 

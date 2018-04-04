@@ -137,8 +137,6 @@ ret = conntrack_startup();
     return(1);
     }
 
-logmessage(LOG_DEBUG,"g_shutdown = %d\n",g_shutdown);
-
 go_child_startup();
 
     // the nfct_catch function should only return if it receives a signal

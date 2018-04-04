@@ -16,8 +16,11 @@ func Plugin_Goodbye(childsync *sync.WaitGroup) {
 	childsync.Done()
 }
 
-func Plugin_netfilter_handler(buffer []byte, length int) {
+func Plugin_netfilter_handler(ch chan<- int32,buffer []byte, length int) {
 	fmt.Println(hex.Dump(buffer))
+
+	// use the channel to return our mark bits
+	ch <- 2
 }
 
 func Plugin_conntrack_handler(tracker *support.Tracker) {

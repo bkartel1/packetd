@@ -86,7 +86,7 @@ stdinloop:
 
 /*---------------------------------------------------------------------------*/
 //export go_netfilter_callback
-func go_netfilter_callback(data *C.uchar, size C.int) {
+func go_netfilter_callback(mark C.int, data *C.uchar, size C.int) int32 {
 
 	// this version creates a Go copy of the buffer
 	// buffer := C.GoBytes(unsafe.Pointer(data),size)
@@ -97,10 +97,28 @@ func go_netfilter_callback(data *C.uchar, size C.int) {
 
 	// ********** Call all plugin netfilter handler functions here
 
-	go example.Plugin_netfilter_handler(buffer, length)
-	go classify.Plugin_netfilter_handler(buffer, length)
+	c1 := make(chan int32)
+	go example.Plugin_netfilter_handler(c1, buffer, length)
+	c2 := make(chan int32)
+	go classify.Plugin_netfilter_handler(c2, buffer, length)
 
 	// ********** End of plugin netfilter callback functions
+
+	// get the existing mark on the packet
+	var pmark int32 = int32(C.int(mark))
+
+	// add the mark bits returned from each package handler
+	for i := 0; i < 2; i++ {
+		select {
+		case mark1 := <-c1:
+			pmark |= mark1
+		case mark2 := <-c2:
+			pmark |= mark2
+		}
+	}
+
+	// return the updated mark to be set on the packet
+	return (pmark)
 }
 
 /*---------------------------------------------------------------------------*/

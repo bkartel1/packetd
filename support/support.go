@@ -31,7 +31,7 @@ func LogMessage(format string, args ...interface{}) {
 	if len(args) == 0 {
 		fmt.Printf("[%.6f] %s", elapsed.Seconds(), format)
 	} else {
-		buffer := fmt.Sprintf(format, args)
+		buffer := fmt.Sprintf(format, args...)
 		fmt.Printf("[%.6f] %s", elapsed.Seconds(), buffer)
 	}
 }

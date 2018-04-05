@@ -14,8 +14,17 @@ import "unsafe"
 import "github.com/untangle/packetd/support"
 import "github.com/untangle/packetd/example"
 import "github.com/untangle/packetd/classify"
+import "github.com/untangle/packetd/geoip"
 
 /*---------------------------------------------------------------------------*/
+
+/*
+ * The childsync is used to give the main process something to watch while
+ * waiting for all of the goroutine children to finish execution and cleanup.
+ * To give C child functions access we export go_child_startup and goodbye
+ * functions. For children in normal go packages, we pass the WaitGroup
+ * directly to the goroutine.
+ */
 var childsync sync.WaitGroup
 
 /*---------------------------------------------------------------------------*/
@@ -32,6 +41,7 @@ func main() {
 
 	go example.Plugin_Startup(&childsync)
 	go classify.Plugin_Startup(&childsync)
+	go geoip.Plugin_Startup(&childsync)
 
 	// ********** End of plugin startup functions
 
@@ -76,6 +86,7 @@ stdinloop:
 
 	go example.Plugin_Goodbye(&childsync)
 	go classify.Plugin_Goodbye(&childsync)
+	go geoip.Plugin_Goodbye(&childsync)
 
 	// ********** End of plugin goodbye functions
 
@@ -101,6 +112,8 @@ func go_netfilter_callback(mark C.int, data *C.uchar, size C.int) int32 {
 	go example.Plugin_netfilter_handler(c1, buffer, length)
 	c2 := make(chan int32)
 	go classify.Plugin_netfilter_handler(c2, buffer, length)
+	c3 := make(chan int32)
+	go geoip.Plugin_netfilter_handler(c3, buffer, length)
 
 	// ********** End of plugin netfilter callback functions
 
@@ -114,6 +127,8 @@ func go_netfilter_callback(mark C.int, data *C.uchar, size C.int) int32 {
 			pmark |= mark1
 		case mark2 := <-c2:
 			pmark |= mark2
+		case mark3 := <-c3:
+			pmark |= mark3
 		}
 	}
 
@@ -140,6 +155,7 @@ func go_conntrack_callback(info *C.struct_conntrack_info) {
 
 	go example.Plugin_conntrack_handler(&tracker)
 	go classify.Plugin_conntrack_handler(&tracker)
+	go geoip.Plugin_conntrack_handler(&tracker)
 
 	// ********** End of plugin netfilter callback functions
 

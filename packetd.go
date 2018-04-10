@@ -144,16 +144,16 @@ func go_netfilter_callback(mark C.int, data *C.uchar, size C.int) int32 {
 func go_conntrack_callback(info *C.struct_conntrack_info) {
 	var tracker support.Tracker
 
-	tracker.Orig_src_addr = uint(info.orig_saddr)
-	tracker.Repl_src_addr = uint(info.repl_saddr)
-	tracker.Orig_dst_addr = uint(info.orig_daddr)
-	tracker.Repl_dst_addr = uint(info.repl_daddr)
-	tracker.Orig_src_port = uint(info.orig_sport)
-	tracker.Repl_src_port = uint(info.repl_sport)
-	tracker.Orig_dst_port = uint(info.orig_dport)
-	tracker.Repl_dst_port = uint(info.repl_dport)
-	tracker.Orig_protocol = uint(info.orig_proto)
-	tracker.Repl_protocol = uint(info.repl_proto)
+	tracker.Orig_src_addr = uint32(info.orig_saddr)
+	tracker.Repl_src_addr = uint32(info.repl_saddr)
+	tracker.Orig_dst_addr = uint32(info.orig_daddr)
+	tracker.Repl_dst_addr = uint32(info.repl_daddr)
+	tracker.Orig_src_port = uint16(info.orig_sport)
+	tracker.Repl_src_port = uint16(info.repl_sport)
+	tracker.Orig_dst_port = uint16(info.orig_dport)
+	tracker.Repl_dst_port = uint16(info.repl_dport)
+	tracker.Orig_protocol = uint8(info.orig_proto)
+	tracker.Repl_protocol = uint8(info.repl_proto)
 
 	// ********** Call all plugin conntrack handler functions here
 
@@ -168,15 +168,15 @@ func go_conntrack_callback(info *C.struct_conntrack_info) {
 func go_netlogger_callback(info *C.struct_netlogger_info) {
 	var logger support.Logger
 
-	logger.Protocol = uint(info.protocol)
-	logger.IcmpType = uint(info.icmp_type)
-	logger.SrcIntf = uint(info.src_intf)
-	logger.DstIntf = uint(info.dst_intf)
-	logger.SrcAddr = uint(info.src_addr)
-	logger.DstAddr = uint(info.dst_addr)
-	logger.SrcPort = uint(info.src_port)
-	logger.DstPort = uint(info.dst_port)
-	logger.Mark = uint(info.mark)
+	logger.Protocol = uint8(info.protocol)
+	logger.IcmpType = uint16(info.icmp_type)
+	logger.SrcIntf = uint8(info.src_intf)
+	logger.DstIntf = uint8(info.dst_intf)
+	logger.SrcAddr = uint32(info.src_addr)
+	logger.DstAddr = uint32(info.dst_addr)
+	logger.SrcPort = uint16(info.src_port)
+	logger.DstPort = uint16(info.dst_port)
+	logger.Mark = uint32(info.mark)
 	logger.Prefix = C.GoString(info.prefix)
 
 	// ********** Call all plugin netlogger handler functions here

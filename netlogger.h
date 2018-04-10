@@ -10,7 +10,7 @@
 /*--------------------------------------------------------------------------*/
 struct netlogger_info
 {
-	u_int32_t	protocol;
+	u_int8_t	protocol;
 	u_int16_t	icmp_type;
 	u_int8_t	src_intf, dst_intf;
 	u_int32_t	src_addr, dst_addr;

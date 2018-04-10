@@ -24,6 +24,20 @@ type Tracker struct {
 }
 
 /*---------------------------------------------------------------------------*/
+type Logger struct {
+	Protocol 	uint
+	IcmpType	uint
+	SrcIntf		uint
+	DstIntf		uint
+	SrcAddr		uint
+	DstAddr		uint
+	SrcPort		uint
+	DstPort		uint
+	Mark		uint
+	Prefix		string
+}
+
+/*---------------------------------------------------------------------------*/
 func LogMessage(format string, args ...interface{}) {
 	nowtime := time.Now()
 	var elapsed = nowtime.Sub(runtime)

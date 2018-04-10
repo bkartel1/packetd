@@ -34,13 +34,13 @@ int l_attr_tls_hostname = INVALID_VALUE;
 /*--------------------------------------------------------------------------*/
 int navl_callback(navl_handle_t handle,navl_result_t result,navl_state_t state,navl_conn_t conn,void *arg,int error)
 {
-navl_iterator_t     it;
-char                protochain[256];
-char                appname[16];
-char                work[16];
-int                 confidence;
-int                 appid;
-int                 value;
+navl_iterator_t		it;
+char				protochain[256];
+char				appname[16];
+char				work[16];
+int					confidence;
+int					appid;
+int					value;
 
 // get the application id and confidence
 confidence = 0;
@@ -56,12 +56,12 @@ protochain[0] = 0;
 	{
 	// get the protocol index
 	value = navl_proto_get_index(handle,it);
-    work[0] = 0;
-    navl_proto_get_name(handle,value,work,sizeof(work));
+	work[0] = 0;
+	navl_proto_get_name(handle,value,work,sizeof(work));
 
 	// append the protocol name to the chain
 	strncat(protochain,"/",sizeof(protochain)-1);
-    strncat(protochain,work,sizeof(protochain)-1);
+	strncat(protochain,work,sizeof(protochain)-1);
 	}
 
 // TODO - do something with the appname and protochain
@@ -107,9 +107,9 @@ navl_classify(l_navl_handle,NAVL_ENCAP_IP,data,length,NULL,0,navl_callback,NULL)
 /*--------------------------------------------------------------------------*/
 int vendor_log_message(const char *level, const char *func, const char *format, ... )
 {
-char    buf[4096];
-int     res = 0;
-va_list va;
+va_list		va;
+char		buf[4096];
+int			res = 0;
 
 va_start(va, format);
 res = snprintf(buf, 4096, "%s: %s: ", level, func);

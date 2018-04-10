@@ -7,6 +7,7 @@
  * All Rights Reserved
  */
 
+#include <unistd.h>
 #include <syslog.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -15,10 +16,15 @@
 #include <errno.h>
 #include <poll.h>
 #include <sys/time.h>
+#include <arpa/inet.h>
 #include <netinet/ip.h>
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
+#include <netinet/ip_icmp.h>
 #include <linux/netfilter.h>
 #include <libnetfilter_conntrack/libnetfilter_conntrack.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
+#include <libnetfilter_log/libnetfilter_log.h>
 #include <libnfnetlink/libnfnetlink.h>
 /*--------------------------------------------------------------------------*/
 static struct timeval	g_runtime;
@@ -100,12 +106,12 @@ if ((priority == LOG_DEBUG) && (g_debug == 0)) return;
 message = (char *)malloc((size * 3) + 4);
 data = (const unsigned char *)buffer;
 
-    for(x = 0;x < size;x++)
-    {
-    loc = (x * 3);
-    if (x == 0) sprintf(&message[loc],"%02X ",data[x]);
-    else sprintf(&message[loc],"%02X ",data[x]);
-    }
+	for(x = 0;x < size;x++)
+	{
+	loc = (x * 3);
+	if (x == 0) sprintf(&message[loc],"%02X ",data[x]);
+	else sprintf(&message[loc],"%02X ",data[x]);
+	}
 
 loc = (size * 3);
 strcpy(&message[loc],"\n");

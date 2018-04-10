@@ -3,7 +3,8 @@ package main
 //#include "common.h"
 //#include "netfilter.h"
 //#include "conntrack.h"
-//#cgo LDFLAGS: -lnetfilter_queue -lnfnetlink -lnetfilter_conntrack
+//#include "netlogger.h"
+//#cgo LDFLAGS: -lnetfilter_queue -lnfnetlink -lnetfilter_conntrack -lnetfilter_log
 import "C"
 
 import "os"
@@ -36,6 +37,7 @@ func main() {
 
 	go C.netfilter_thread()
 	go C.conntrack_thread()
+	go C.netlogger_thread()
 
 	// ********** Call all plugin startup functions here
 
@@ -92,6 +94,7 @@ stdinloop:
 
 	C.netfilter_goodbye()
 	C.conntrack_goodbye()
+	C.netlogger_goodbye()
 	childsync.Wait()
 }
 
@@ -140,6 +143,7 @@ func go_netfilter_callback(mark C.int, data *C.uchar, size C.int) int32 {
 //export go_conntrack_callback
 func go_conntrack_callback(info *C.struct_conntrack_info) {
 	var tracker support.Tracker
+
 	tracker.Orig_src_addr = uint(info.orig_saddr)
 	tracker.Repl_src_addr = uint(info.repl_saddr)
 	tracker.Orig_dst_addr = uint(info.orig_daddr)
@@ -154,11 +158,32 @@ func go_conntrack_callback(info *C.struct_conntrack_info) {
 	// ********** Call all plugin conntrack handler functions here
 
 	go example.Plugin_conntrack_handler(&tracker)
-	go classify.Plugin_conntrack_handler(&tracker)
-	go geoip.Plugin_conntrack_handler(&tracker)
 
 	// ********** End of plugin netfilter callback functions
 
+}
+
+/*---------------------------------------------------------------------------*/
+//export go_netlogger_callback
+func go_netlogger_callback(info *C.struct_netlogger_info) {
+	var logger support.Logger
+
+	logger.Protocol = uint(info.protocol)
+	logger.IcmpType = uint(info.icmp_type)
+	logger.SrcIntf = uint(info.src_intf)
+	logger.DstIntf = uint(info.dst_intf)
+	logger.SrcAddr = uint(info.src_addr)
+	logger.DstAddr = uint(info.dst_addr)
+	logger.SrcPort = uint(info.src_port)
+	logger.DstPort = uint(info.dst_port)
+	logger.Mark = uint(info.mark)
+	logger.Prefix = C.GoString(info.prefix)
+
+	// ********** Call all plugin netlogger handler functions here
+
+	go example.Plugin_netlogger_handler(&logger)
+
+	// ********** End of plugin netlogger callback functions
 }
 
 /*---------------------------------------------------------------------------*/

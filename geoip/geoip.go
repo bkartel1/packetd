@@ -8,6 +8,7 @@ import "github.com/google/gopacket/layers"
 
 var geodb *geoip2.Reader
 
+/*---------------------------------------------------------------------------*/
 func Plugin_Startup(childsync *sync.WaitGroup) {
 	support.LogMessage("Plugin_Startup(%s) has been called\n", "geoip")
 
@@ -21,12 +22,14 @@ func Plugin_Startup(childsync *sync.WaitGroup) {
 	childsync.Add(1)
 }
 
+/*---------------------------------------------------------------------------*/
 func Plugin_Goodbye(childsync *sync.WaitGroup) {
 	support.LogMessage("Plugin_Goodbye(%s) has been called\n", "geoip")
 	geodb.Close()
 	childsync.Done()
 }
 
+/*---------------------------------------------------------------------------*/
 func Plugin_netfilter_handler(ch chan<- int32,buffer []byte, length int) {
 	support.LogMessage("GEOIP RECEIVED %d BYTES\n",length)
 	packet := gopacket.NewPacket(buffer, layers.LayerTypeIPv4, gopacket.DecodeOptions{Lazy: true, NoCopy: true})
@@ -49,5 +52,4 @@ func Plugin_netfilter_handler(ch chan<- int32,buffer []byte, length int) {
 	ch <- 4
 }
 
-func Plugin_conntrack_handler(tracker *support.Tracker) {
-}
+/*---------------------------------------------------------------------------*/
